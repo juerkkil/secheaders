@@ -1,20 +1,20 @@
 [build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "secheaders"
 version = "0.1.0"
-requires-python = ">=3.4"
+requires-python = ">=3.8"
 authors = [
   {name = "Jussi-Pekka Erkkilä", email = "jp.erkkila@gmail.com"},
 ]
 maintainers = [
   {name = "Jussi-Pekka Erkkilä", email = "jp.erkkila@gmail.com"}
 ]
+
 description = "Scan HTTP security headers"
 readme = "README.md"
-license = {file = "LICENSE"}
 keywords = ["web", "security"]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -25,6 +25,12 @@ classifiers = [
   "Programming Language :: Python",
   "Topic :: Security",
 ]
+
+[project.urls]
+Homepage = "https://github.com/juerkkil/secheaders"
+Issues = "https://github.com/juerkkil/secheaders/issues"
+Repository = "https://github.com/juerkkil/secheaders"
+
 
 [project.scripts]
 secheaders = "secheaders.securityheaders:main"
