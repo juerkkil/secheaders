@@ -12,12 +12,13 @@ With minor modifications could be used as a library for other projects.
 
 The following assumes you have Python  installed and command `python` refers to python version >= 3.8.
 
-### Run without installation
+### Install
 
-1. Clone into repository
-2. Run `python -m secheaders`
+```
+$ pip install secheaders
+```
 
-### Installation
+### Building and running locally
 
 1. Clone into repository
 2. `python -m build`
@@ -25,8 +26,13 @@ The following assumes you have Python  installed and command `python` refers to 
 4. Run `secheaders --help`
 
 
+### Running from source without installation
 
-### Usage
+1. Clone into repository
+2. Run `python -m secheaders`
+
+
+## Usage
 ```
 $ secheaders --help
 usage: secheaders [-h] [--max-redirects N] [--insecure] [--verbose] URL
@@ -44,7 +50,7 @@ options:
 ```
 
 
-### Example output
+## Example output
 ```
 $ secheaders example.com
 Header 'x-frame-options' is missing [ WARN ]
@@ -59,3 +65,16 @@ HTTPS supported  [ OK ]
 HTTPS valid certificate  [ OK ]
 HTTP -> HTTPS automatic redirect [ WARN ]
 ```
+
+## Design principles
+
+The following design principles have been considered:
+
+* Simplicity of the codebase. 
+	* The code should be easy to understand and follow without in-depth Python knowledge.
+* Avoidance of external dependencies.
+	* The Python Standard Libary provides enough tools and libraries for quite many use cases.
+* Unix philosophy in general 
+	* *"Do one thing and do it well"*
+
+These are not rules set in stone, but should be revisited when doing big design choices.
