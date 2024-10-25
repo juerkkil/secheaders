@@ -134,9 +134,16 @@ def permissions_policy_parser(contents: str) -> dict:
     return retval
 
 
-def print_ok(msg: str):
-    print(f"{msg}  [ {OK_COLOR}OK{END_COLOR} ]")
+def get_eval_output(warn, no_color):
+    color_start = OK_COLOR
+    color_end = END_COLOR
+    eval_result = "OK"
+    if warn:
+        color_start = WARN_COLOR
+        eval_result = "WARN"
 
+    if no_color:
+        color_start = ""
+        color_end = ""
 
-def print_warning(msg: str):
-    print(f"{msg} [ {WARN_COLOR}WARN{END_COLOR} ]")
+    return f"[ {color_start}{eval_result}{color_end} ]"
