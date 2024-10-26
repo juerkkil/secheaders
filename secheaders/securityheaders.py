@@ -1,14 +1,18 @@
 import argparse
 import http.client
+import json
 import re
+import shutil
 import socket
 import ssl
 import sys
+import textwrap
+from typing import Union
 from urllib.parse import ParseResult, urlparse
 
 from . import utils
 from .constants import DEFAULT_TIMEOUT, DEFAULT_URL_SCHEME, EVAL_WARN, REQUEST_HEADERS, HEADER_STRUCTURED_LIST, \
-        SERVER_VERSION_HEADERS, HEADER_OUTPUT_MAX_LEN
+        SERVER_VERSION_HEADERS, COLUMN_WIDTH_R
 from .exceptions import SecurityHeadersException, InvalidTargetURL, UnableToConnect
 
 
@@ -61,7 +65,7 @@ class SecurityHeaders():
             else parsed
         self.headers = {}
 
-    def test_https(self):
+    def test_https(self) -> dict:
         redirect_supported = self._test_http_to_https()
 
         conn = http.client.HTTPSConnection(self.hostname, context=ssl.create_default_context(),
@@ -75,14 +79,15 @@ class SecurityHeaders():
 
         return {'supported': True, 'certvalid': True, 'redirect': redirect_supported}
 
-    def _follow_redirect_until_response(self, url, follow_redirects=5):
+    def _follow_redirect_until_response(self, url, follow_redirects=5) -> ParseResult:
         temp_url = urlparse(url)
         while follow_redirects >= 0:
 
             if temp_url.scheme == 'http':
                 conn = http.client.HTTPConnection(temp_url.netloc, timeout=DEFAULT_TIMEOUT)
             elif temp_url.scheme == 'https':
-                ctx = ssl.create_default_context() if self.verify_ssl else ssl._create_stdlib_context()  # pylint: disable=protected-access
+                # pylint: disable-next=protected-access
+                ctx = ssl.create_default_context() if self.verify_ssl else ssl._create_stdlib_context()
                 conn = http.client.HTTPSConnection(temp_url.netloc, context=ctx, timeout=DEFAULT_TIMEOUT)
             else:
                 raise InvalidTargetURL("Unsupported protocol scheme")
@@ -111,7 +116,7 @@ class SecurityHeaders():
         # More than x redirects, stop here
         return temp_url
 
-    def _test_http_to_https(self, follow_redirects=5):
+    def _test_http_to_https(self, follow_redirects=5) -> bool:
         url = f"http://{self.hostname}{self.path}"
         target_url = self._follow_redirect_until_response(url, follow_redirects)
         if target_url and target_url.scheme == 'https':
@@ -119,7 +124,7 @@ class SecurityHeaders():
 
         return False
 
-    def open_connection(self, target_url):
+    def open_connection(self, target_url) -> Union[http.client.HTTPConnection, http.client.HTTPSConnection]:
         if target_url.scheme == 'http':
             conn = http.client.HTTPConnection(target_url.hostname, timeout=DEFAULT_TIMEOUT)
         elif target_url.scheme == 'https':
@@ -133,7 +138,7 @@ class SecurityHeaders():
 
         return conn
 
-    def fetch_headers(self):
+    def fetch_headers(self) -> None:
         """ Fetch headers from the target site and store them into the class instance """
 
         conn = self.open_connection(self.target_url)
@@ -152,7 +157,7 @@ class SecurityHeaders():
             else:
                 self.headers[key] = h[1]
 
-    def check_headers(self):
+    def check_headers(self) -> dict:
         """ Default return array """
         retval = {}
 
@@ -187,25 +192,38 @@ class SecurityHeaders():
 
         return retval
 
-def output_cli(headers, https, verbose=False):
+    def get_full_url(self) -> str:
+        return f"{self.protocol_scheme}://{self.hostname}{self.path}"
+
+
+def output_text(headers, https, verbose=False, no_color=False) -> None:
+    terminal_width = shutil.get_terminal_size().columns
+
+    # If the stdout is not going into terminal, disable colors
+    no_color = no_color or not sys.stdout.isatty()
     for header, value in headers.items():
-        output_str = ""
+        truncated = False
+        header_contents = value['contents']
         if not value['defined']:
             output_str = f"Header '{header}' is missing"
         else:
-            header_contents = value['contents']
-            if not verbose and len(header_contents) > HEADER_OUTPUT_MAX_LEN:
-                header_contents = f"{header_contents[0:HEADER_OUTPUT_MAX_LEN]}... (truncated)"
-
             output_str = f"{header}: {header_contents}"
-        notes = ""
-        for note in value['notes']:
-            notes = f"{notes} * {note}\n"
+            if len(output_str) > terminal_width- COLUMN_WIDTH_R:
+                truncated = True
+                output_str = f"{output_str[0:(terminal_width - COLUMN_WIDTH_R - 3)]}..."
 
-        print_func = utils.print_warning if value['warn'] else utils.print_ok
-        print_func(output_str)
-        if notes:
-            print(notes)
+        eval_value = utils.get_eval_output(value['warn'], no_color)
+
+        if no_color:
+            print(f"{output_str:<{terminal_width - COLUMN_WIDTH_R}}{eval_value:^{COLUMN_WIDTH_R}}")
+        else:
+            # This is a dirty hack required to align ANSI-colored str correctly
+            print(f"{output_str:<{terminal_width - COLUMN_WIDTH_R}}{eval_value:^{COLUMN_WIDTH_R + 9}}")
+
+        if truncated and verbose:
+            print((f"Full header contents: {header_contents}"))
+        for note in value['notes']:
+            print(textwrap.fill(f" * {note}", terminal_width - COLUMN_WIDTH_R, subsequent_indent='   '))
 
     msg_map = {
         'supported': 'HTTPS supported',
@@ -213,20 +231,27 @@ def output_cli(headers, https, verbose=False):
         'redirect': 'HTTP -> HTTPS automatic redirect',
     }
     for key in https:
-        if https[key]:
-            utils.print_ok(msg_map[key])
+        output_str = f"{msg_map[key]}"
+        eval_value = utils.get_eval_output(not https[key], no_color)
+        if no_color:
+            output_str = f"{output_str:<{terminal_width - COLUMN_WIDTH_R}}{eval_value:^{COLUMN_WIDTH_R}}"
         else:
-            utils.print_warning(msg_map[key])
+            # This is a dirty hack required to align ANSI-colored str correctly
+            output_str = f"{output_str:<{terminal_width - COLUMN_WIDTH_R}}{eval_value:^{COLUMN_WIDTH_R + 9}}"
+
+        print(output_str)
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Check HTTP security headers',
+    parser = argparse.ArgumentParser(description='Scan HTTP security headers',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('url', metavar='URL', type=str, help='Target URL')
     parser.add_argument('--max-redirects', dest='max_redirects', metavar='N', default=2, type=int,
                         help='Max redirects, set 0 to disable')
     parser.add_argument('--insecure', dest='insecure', action='store_true',
                         help='Do not verify TLS certificate chain')
+    parser.add_argument('--json', dest='json', action='store_true', help='JSON output instead of text')
+    parser.add_argument('--no-color', dest='no_color', action='store_true', help='Do not output colors in terminal')
     parser.add_argument('--verbose', '-v', dest='verbose', action='store_true',
                         help='Verbose output')
     args = parser.parse_args()
@@ -235,15 +260,19 @@ def main():
         header_check.fetch_headers()
         headers = header_check.check_headers()
     except SecurityHeadersException as e:
-        print(e)
+        print(e, file=sys.stderr)
         sys.exit(1)
 
     if not headers:
-        print("Failed to fetch headers, exiting...")
+        print("Failed to fetch headers, exiting...", file=sys.stderr)
         sys.exit(1)
 
     https = header_check.test_https()
-    output_cli(headers, https, args.verbose)
+    if args.json:
+        print(json.dumps({'target': header_check.get_full_url(), 'headers': headers, 'https': https}, indent=2))
+    else:
+        output_text(headers, https, args.verbose, args.no_color)
+
 
 if __name__ == "__main__":
     main()

@@ -35,9 +35,11 @@ $ pip install secheaders
 ## Usage
 ```
 $ secheaders --help
-usage: secheaders [-h] [--max-redirects N] [--insecure] [--verbose] URL
+usage: secheaders [-h] [--max-redirects N] [--insecure] [--json] [--no-color]
+                  [--verbose]
+                  URL
 
-Check HTTP security headers
+Scan HTTP security headers
 
 positional arguments:
   URL                Target URL
@@ -46,6 +48,8 @@ options:
   -h, --help         show this help message and exit
   --max-redirects N  Max redirects, set 0 to disable (default: 2)
   --insecure         Do not verify TLS certificate chain (default: False)
+  --json             JSON output instead of text (default: False)
+  --no-color         Do not output colors in terminal (default: False)
   --verbose, -v      Verbose output (default: False)
 ```
 
@@ -53,17 +57,17 @@ options:
 ## Example output
 ```
 $ secheaders example.com
-Header 'x-frame-options' is missing [ WARN ]
-Header 'strict-transport-security' is missing [ WARN ]
-Header 'content-security-policy' is missing [ WARN ]
-Header 'x-content-type-options' is missing [ WARN ]
-Header 'x-xss-protection' is missing  [ OK ]
-Header 'referrer-policy' is missing [ WARN ]
-Header 'permissions-policy' is missing [ WARN ]
-server: ECAcc (nyd/D124) [ WARN ]
-HTTPS supported  [ OK ]
-HTTPS valid certificate  [ OK ]
-HTTP -> HTTPS automatic redirect [ WARN ]
+Header 'x-frame-options' is missing                                   [ WARN ]
+Header 'strict-transport-security' is missing                         [ WARN ]
+Header 'content-security-policy' is missing                           [ WARN ]
+Header 'x-content-type-options' is missing                            [ WARN ]
+Header 'x-xss-protection' is missing                                   [ OK ]
+Header 'referrer-policy' is missing                                   [ WARN ]
+Header 'permissions-policy' is missing                                [ WARN ]
+server: ECAcc (nyd/D147)                                              [ WARN ]
+HTTPS supported                                                        [ OK ]
+HTTPS valid certificate                                                [ OK ]
+HTTP -> HTTPS automatic redirect                                      [ WARN ]
 ```
 
 ## Design principles
