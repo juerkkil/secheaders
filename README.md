@@ -22,7 +22,7 @@ $ pip install secheaders
 
 1. Clone into repository
 2. `python -m build`
-3. `pip install dist/secheaders-0.1.0-py3-none-any.whl`
+3. `pip install dist/secheaders-0.1.1-py3-none-any.whl`
 4. Run `secheaders --help`
 
 
