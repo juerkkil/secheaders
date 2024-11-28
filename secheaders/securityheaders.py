@@ -2,17 +2,15 @@ import argparse
 import http.client
 import json
 import re
-import shutil
 import socket
 import ssl
 import sys
-import textwrap
 from typing import Union
 from urllib.parse import ParseResult, urlparse
 
-from . import utils
+from . import utils, cmd_utils
 from .constants import DEFAULT_TIMEOUT, DEFAULT_URL_SCHEME, EVAL_WARN, REQUEST_HEADERS, HEADER_STRUCTURED_LIST, \
-        SERVER_VERSION_HEADERS, COLUMN_WIDTH_R
+        SERVER_VERSION_HEADERS
 from .exceptions import SecurityHeadersException, InvalidTargetURL, UnableToConnect
 
 
@@ -196,52 +194,6 @@ class SecurityHeaders():
         return f"{self.protocol_scheme}://{self.hostname}{self.path}"
 
 
-def output_text(headers, https, verbose=False, no_color=False) -> None:
-    terminal_width = shutil.get_terminal_size().columns
-
-    # If the stdout is not going into terminal, disable colors
-    no_color = no_color or not sys.stdout.isatty()
-    for header, value in headers.items():
-        truncated = False
-        header_contents = value['contents']
-        if not value['defined']:
-            output_str = f"Header '{header}' is missing"
-        else:
-            output_str = f"{header}: {header_contents}"
-            if len(output_str) > terminal_width- COLUMN_WIDTH_R:
-                truncated = True
-                output_str = f"{output_str[0:(terminal_width - COLUMN_WIDTH_R - 3)]}..."
-
-        eval_value = utils.get_eval_output(value['warn'], no_color)
-
-        if no_color:
-            print(f"{output_str:<{terminal_width - COLUMN_WIDTH_R}}{eval_value:^{COLUMN_WIDTH_R}}")
-        else:
-            # This is a dirty hack required to align ANSI-colored str correctly
-            print(f"{output_str:<{terminal_width - COLUMN_WIDTH_R}}{eval_value:^{COLUMN_WIDTH_R + 9}}")
-
-        if truncated and verbose:
-            print((f"Full header contents: {header_contents}"))
-        for note in value['notes']:
-            print(textwrap.fill(f" * {note}", terminal_width - COLUMN_WIDTH_R, subsequent_indent='   '))
-
-    msg_map = {
-        'supported': 'HTTPS supported',
-        'certvalid': 'HTTPS valid certificate',
-        'redirect': 'HTTP -> HTTPS automatic redirect',
-    }
-    for key in https:
-        output_str = f"{msg_map[key]}"
-        eval_value = utils.get_eval_output(not https[key], no_color)
-        if no_color:
-            output_str = f"{output_str:<{terminal_width - COLUMN_WIDTH_R}}{eval_value:^{COLUMN_WIDTH_R}}"
-        else:
-            # This is a dirty hack required to align ANSI-colored str correctly
-            output_str = f"{output_str:<{terminal_width - COLUMN_WIDTH_R}}{eval_value:^{COLUMN_WIDTH_R + 9}}"
-
-        print(output_str)
-
-
 def main():
     parser = argparse.ArgumentParser(description='Scan HTTP security headers',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -271,7 +223,7 @@ def main():
     if args.json:
         print(json.dumps({'target': header_check.get_full_url(), 'headers': headers, 'https': https}, indent=2))
     else:
-        output_text(headers, https, args.verbose, args.no_color)
+        print(cmd_utils.output_text(headers, https, args.verbose, args.no_color))
 
 
 if __name__ == "__main__":
