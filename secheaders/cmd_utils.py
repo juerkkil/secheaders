@@ -20,19 +20,18 @@ def get_eval_output(warn, no_color):
     return f"[ {color_start}{eval_result}{color_end} ]"
 
 
-def output_text(headers, https, verbose=False, no_color=False) -> str:
+def output_text(target_url, headers, https, args) -> str:
     terminal_width = shutil.get_terminal_size().columns
-    output_str = ""
+    output_str = f"Scan target: {target_url}\n"
 
     # If the stdout is not going into terminal, disable colors
-    no_color = no_color or not sys.stdout.isatty()
+    no_color = args.no_color or not sys.stdout.isatty()
     for header, value in headers.items():
         truncated = False
-        header_contents = value['contents']
         if not value['defined']:
             output = f"Header '{header}' is missing"
         else:
-            output = f"{header}: {header_contents}"
+            output = f"{header}: {value['contents']}"
             if len(output) > terminal_width - COLUMN_WIDTH_R:
                 truncated = True
                 output = f"{output[0:(terminal_width - COLUMN_WIDTH_R - 3)]}..."
@@ -45,8 +44,8 @@ def output_text(headers, https, verbose=False, no_color=False) -> str:
             # This is a dirty hack required to align ANSI-colored str correctly
             output_str += f"{output:<{terminal_width - COLUMN_WIDTH_R}}{eval_value:^{COLUMN_WIDTH_R + 9}}\n"
 
-        if truncated and verbose:
-            output_str += f"Full header contents: {header_contents}\n"
+        if truncated and args.verbose:
+            output_str += f"Full header contents: {value['contents']}\n"
         for note in value['notes']:
             output_str += textwrap.fill(f" * {note}", terminal_width - COLUMN_WIDTH_R, subsequent_indent='   ')
             output_str += "\n"

@@ -223,7 +223,7 @@ def main():
     if args.json:
         print(json.dumps({'target': header_check.get_full_url(), 'headers': headers, 'https': https}, indent=2))
     else:
-        print(cmd_utils.output_text(headers, https, args.verbose, args.no_color))
+        print(cmd_utils.output_text(header_check.get_full_url(), headers, https, args))
 
 
 if __name__ == "__main__":
