@@ -1,8 +1,7 @@
 import re
 from typing import Tuple
 
-from .constants import EVAL_WARN, EVAL_OK, UNSAFE_CSP_RULES, RESTRICTED_PERM_POLICY_FEATURES, WARN_COLOR, OK_COLOR, \
-    END_COLOR
+from .constants import EVAL_WARN, EVAL_OK, UNSAFE_CSP_RULES, RESTRICTED_PERM_POLICY_FEATURES
 
 
 def eval_x_frame_options(contents: str) -> Tuple[int, list]:
@@ -132,18 +131,3 @@ def permissions_policy_parser(contents: str) -> dict:
             retval[feature] = feature_policy.split()
 
     return retval
-
-
-def get_eval_output(warn, no_color):
-    color_start = OK_COLOR
-    color_end = END_COLOR
-    eval_result = "OK"
-    if warn:
-        color_start = WARN_COLOR
-        eval_result = "WARN"
-
-    if no_color:
-        color_start = ""
-        color_end = ""
-
-    return f"[ {color_start}{eval_result}{color_end} ]"
