@@ -1,15 +1,11 @@
-import argparse
-import asyncio
 import http.client
-import json
 import re
 import socket
 import ssl
-import sys
 from typing import Union
 from urllib.parse import ParseResult, urlparse
 
-from . import utils, cmd_utils
+from . import utils
 from .constants import DEFAULT_TIMEOUT, DEFAULT_URL_SCHEME, EVAL_WARN, REQUEST_HEADERS, HEADER_STRUCTURED_LIST, \
         SERVER_VERSION_HEADERS
 from .exceptions import SecurityHeadersException, InvalidTargetURL, UnableToConnect
@@ -193,74 +189,3 @@ class SecurityHeaders():
 
     def get_full_url(self) -> str:
         return f"{self.protocol_scheme}://{self.hostname}{self.path}"
-
-
-def scan_target(url, args):
-    try:
-        header_check = SecurityHeaders(url, args.max_redirects, args.insecure)
-        header_check.fetch_headers()
-        headers = header_check.check_headers()
-    except SecurityHeadersException as e:
-        print(e, file=sys.stderr)
-        sys.exit(1)
-
-    if not headers:
-        print("Failed to fetch headers, exiting...", file=sys.stderr)
-        sys.exit(1)
-
-    https = header_check.test_https()
-    if args.json:
-        return json.dumps({'target': header_check.get_full_url(), 'headers': headers, 'https': https}, indent=2)
-
-    return cmd_utils.output_text(header_check.get_full_url(), headers, https, args)
-
-
-def main():
-    parser = argparse.ArgumentParser(description='Scan HTTP security headers',
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('url', metavar='URL', nargs='?', default=None, type=str, help='Target URL')
-    parser.add_argument('--target-list', dest='target_list', metavar='FILE', default=None, type=str,
-                        help='Input from list of target URLs')
-    parser.add_argument('--max-redirects', dest='max_redirects', metavar='N', default=2, type=int,
-                        help='Max redirects, set 0 to disable')
-    parser.add_argument('--insecure', dest='insecure', action='store_true',
-                        help='Do not verify TLS certificate chain')
-    parser.add_argument('--json', dest='json', action='store_true', help='JSON output instead of text')
-    parser.add_argument('--no-color', dest='no_color', action='store_true', help='Do not output colors in terminal')
-    parser.add_argument('--verbose', '-v', dest='verbose', action='store_true',
-                        help='Verbose output')
-    args = parser.parse_args()
-
-    if not args.url and not args.target_list:
-        print("No target url provided.", file=sys.stderr)
-        parser.print_usage(sys.stderr)
-        sys.exit(1)
-
-    if args.url:
-        print(scan_target(args.url, args))
-    elif args.target_list:
-        asyncio.run(scan_multiple_targets(args))
-
-
-def done(f):
-    print(f.result())
-    print("========================\n")
-
-
-async def scan_multiple_targets(args):
-    with open(args.target_list, encoding='utf-8') as file:
-        targets = [line.rstrip() for line in file]
-
-    loop = asyncio.get_event_loop()
-    tasks = []
-    for t in targets:
-        task = loop.run_in_executor(None, scan_target, t, args)
-        task.add_done_callback(done)
-        tasks.append(task)
-
-    for task in tasks:
-        await task
-
-
-if __name__ == "__main__":
-    main()
