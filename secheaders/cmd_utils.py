@@ -22,7 +22,7 @@ def get_eval_output(warn, no_color):
 
 def output_text(target_url, headers, https, no_color=False, verbose=False) -> str:
     terminal_width = shutil.get_terminal_size().columns
-    output_str = f"Scanning target {target_url} ...\n\n"
+    output_str = f"Scanning target {target_url} ...\n"
 
     # If the stdout is not going into terminal, disable colors
     no_color = no_color or not sys.stdout.isatty()
@@ -66,4 +66,5 @@ def output_text(target_url, headers, https, no_color=False, verbose=False) -> st
 
         output_str += output
 
+    output_str += '\n'
     return output_str

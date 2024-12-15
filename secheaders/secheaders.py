@@ -54,14 +54,10 @@ def main():
         asyncio.run(scan_multiple_targets(args))
 
 
-scan_results = []
-
-
 def async_scan_done(scan):
     try:
-        res = scan.result()
-        print(cmd_utils.output_text(res['target'], res['headers'], res['https']))
-        print("========================\n")
+        res, args = scan.result()
+        print(cmd_utils.output_text(res['target'], res['headers'], res['https'], args.no_color, args.verbose))
     except SecurityHeadersException as e:
         print(e, file=sys.stderr)
 
@@ -81,22 +77,34 @@ def scan_target(url, args):
     return {'target': header_check.get_full_url(), 'headers': headers, 'https': https}
 
 
+def scan_target_wrapper(url, args):
+    # A bit of a dirty hack to pass args to the done callback
+    return scan_target(url, args), args
+
+
 async def scan_multiple_targets(args):
     with open(args.target_list, encoding='utf-8') as file:
         targets = [line.rstrip() for line in file]
 
     loop = asyncio.get_event_loop()
     tasks = []
-    for t in targets:
-        task = loop.run_in_executor(None, scan_target, t, args)
-        task.add_done_callback(async_scan_done)
+    for target in targets:
+        if args.json:
+            task = loop.run_in_executor(None, scan_target, target, args)
+        else:
+            task = loop.run_in_executor(None, scan_target_wrapper, target, args)
+            task.add_done_callback(async_scan_done)
         tasks.append(task)
 
+    res = []
     for task in tasks:
         await task
 
-    print("ALL COMPLETED!")
+    if args.json:
+        for t in tasks:
+            res.append(t.result())
 
+        print(str(res))
 
 if __name__ == "__main__":
     main()
