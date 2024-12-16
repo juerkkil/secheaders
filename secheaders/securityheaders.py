@@ -1,14 +1,11 @@
-import argparse
 import http.client
-import json
 import re
 import socket
 import ssl
-import sys
 from typing import Union
 from urllib.parse import ParseResult, urlparse
 
-from . import utils, cmd_utils
+from . import utils
 from .constants import DEFAULT_TIMEOUT, DEFAULT_URL_SCHEME, EVAL_WARN, REQUEST_HEADERS, HEADER_STRUCTURED_LIST, \
         SERVER_VERSION_HEADERS
 from .exceptions import SecurityHeadersException, InvalidTargetURL, UnableToConnect
@@ -192,39 +189,3 @@ class SecurityHeaders():
 
     def get_full_url(self) -> str:
         return f"{self.protocol_scheme}://{self.hostname}{self.path}"
-
-
-def main():
-    parser = argparse.ArgumentParser(description='Scan HTTP security headers',
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('url', metavar='URL', type=str, help='Target URL')
-    parser.add_argument('--max-redirects', dest='max_redirects', metavar='N', default=2, type=int,
-                        help='Max redirects, set 0 to disable')
-    parser.add_argument('--insecure', dest='insecure', action='store_true',
-                        help='Do not verify TLS certificate chain')
-    parser.add_argument('--json', dest='json', action='store_true', help='JSON output instead of text')
-    parser.add_argument('--no-color', dest='no_color', action='store_true', help='Do not output colors in terminal')
-    parser.add_argument('--verbose', '-v', dest='verbose', action='store_true',
-                        help='Verbose output')
-    args = parser.parse_args()
-    try:
-        header_check = SecurityHeaders(args.url, args.max_redirects, args.insecure)
-        header_check.fetch_headers()
-        headers = header_check.check_headers()
-    except SecurityHeadersException as e:
-        print(e, file=sys.stderr)
-        sys.exit(1)
-
-    if not headers:
-        print("Failed to fetch headers, exiting...", file=sys.stderr)
-        sys.exit(1)
-
-    https = header_check.test_https()
-    if args.json:
-        print(json.dumps({'target': header_check.get_full_url(), 'headers': headers, 'https': https}, indent=2))
-    else:
-        print(cmd_utils.output_text(header_check.get_full_url(), headers, https, args))
-
-
-if __name__ == "__main__":
-    main()
