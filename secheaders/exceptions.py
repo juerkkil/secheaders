@@ -8,3 +8,7 @@ class InvalidTargetURL(SecurityHeadersException):
 
 class UnableToConnect(SecurityHeadersException):
     pass
+
+
+class FailedToFetchHeaders(SecurityHeadersException):
+    pass

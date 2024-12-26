@@ -20,12 +20,12 @@ def get_eval_output(warn, no_color):
     return f"[ {color_start}{eval_result}{color_end} ]"
 
 
-def output_text(target_url, headers, https, args) -> str:
+def output_text(target_url, headers, https, no_color=False, verbose=False) -> str:
     terminal_width = shutil.get_terminal_size().columns
-    output_str = f"Scan target: {target_url}\n"
+    output_str = f"Scanning target {target_url} ...\n"
 
     # If the stdout is not going into terminal, disable colors
-    no_color = args.no_color or not sys.stdout.isatty()
+    no_color = no_color or not sys.stdout.isatty()
     for header, value in headers.items():
         truncated = False
         if not value['defined']:
@@ -44,7 +44,7 @@ def output_text(target_url, headers, https, args) -> str:
             # This is a dirty hack required to align ANSI-colored str correctly
             output_str += f"{output:<{terminal_width - COLUMN_WIDTH_R}}{eval_value:^{COLUMN_WIDTH_R + 9}}\n"
 
-        if truncated and args.verbose:
+        if truncated and verbose:
             output_str += f"Full header contents: {value['contents']}\n"
         for note in value['notes']:
             output_str += textwrap.fill(f" * {note}", terminal_width - COLUMN_WIDTH_R, subsequent_indent='   ')
@@ -59,10 +59,10 @@ def output_text(target_url, headers, https, args) -> str:
         output = f"{msg_map[key]}"
         eval_value = get_eval_output(not https[key], no_color)
         if no_color:
-            output = f"{output:<{terminal_width - COLUMN_WIDTH_R}}{eval_value:^{COLUMN_WIDTH_R}}"
+            output = f"{output:<{terminal_width - COLUMN_WIDTH_R}}{eval_value:^{COLUMN_WIDTH_R}}\n"
         else:
             # This is a dirty hack required to align ANSI-colored str correctly
-            output = f"{output:<{terminal_width - COLUMN_WIDTH_R}}{eval_value:^{COLUMN_WIDTH_R + 9}}"
+            output = f"{output:<{terminal_width - COLUMN_WIDTH_R}}{eval_value:^{COLUMN_WIDTH_R + 9}}\n"
 
         output_str += output
 

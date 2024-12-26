@@ -34,29 +34,28 @@ $ pip install secheaders
 
 ## Usage
 ```
-$ secheaders --help
-usage: secheaders [-h] [--max-redirects N] [--insecure] [--json] [--no-color]
-                  [--verbose]
-                  URL
+usage: secheaders [-h] [--target-list FILE] [--max-redirects N] [--insecure] [--json] [--no-color] [--verbose] [URL]
 
 Scan HTTP security headers
 
 positional arguments:
-  URL                Target URL
+  URL                 Target URL (default: None)
 
 options:
-  -h, --help         show this help message and exit
-  --max-redirects N  Max redirects, set 0 to disable (default: 2)
-  --insecure         Do not verify TLS certificate chain (default: False)
-  --json             JSON output instead of text (default: False)
-  --no-color         Do not output colors in terminal (default: False)
-  --verbose, -v      Verbose output (default: False)
+  -h, --help          show this help message and exit
+  --target-list FILE  Read multiple target URLs from a file and scan them all (default: None)
+  --max-redirects N   Max redirects, set 0 to disable (default: 2)
+  --insecure          Do not verify TLS certificate chain (default: False)
+  --json              JSON output instead of text (default: False)
+  --no-color          Do not output colors in terminal (default: False)
+  --verbose, -v       Verbose output (default: False)
 ```
 
 
 ## Example output
 ```
 $ secheaders example.com
+Scanning target https://example.com ...
 Header 'x-frame-options' is missing                                   [ WARN ]
 Header 'strict-transport-security' is missing                         [ WARN ]
 Header 'content-security-policy' is missing                           [ WARN ]
@@ -64,21 +63,22 @@ Header 'x-content-type-options' is missing                            [ WARN ]
 Header 'x-xss-protection' is missing                                   [ OK ]
 Header 'referrer-policy' is missing                                   [ WARN ]
 Header 'permissions-policy' is missing                                [ WARN ]
-server: ECAcc (nyd/D147)                                              [ WARN ]
+server: ECAcc (nyd/D191)                                              [ WARN ]
 HTTPS supported                                                        [ OK ]
 HTTPS valid certificate                                                [ OK ]
 HTTP -> HTTPS automatic redirect                                      [ WARN ]
+
 ```
 
 ## Design principles
 
 The following design principles have been considered:
 
-* Simplicity of the codebase. 
+* Simplicity of the codebase.
 	* The code should be easy to understand and follow without in-depth Python knowledge.
 * Avoidance of external dependencies.
 	* The Python Standard Libary provides enough tools and libraries for quite many use cases.
-* Unix philosophy in general 
+* Unix philosophy in general
 	* *"Do one thing and do it well"*
 
 These are not rules set in stone, but should be revisited when doing big design choices.

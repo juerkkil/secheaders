@@ -30,4 +30,4 @@ Repository = "https://github.com/juerkkil/secheaders"
 
 
 [project.scripts]
-secheaders = "secheaders.securityheaders:main"
+secheaders = "secheaders.secheaders:main"
