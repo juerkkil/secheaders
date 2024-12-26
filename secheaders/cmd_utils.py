@@ -59,12 +59,11 @@ def output_text(target_url, headers, https, no_color=False, verbose=False) -> st
         output = f"{msg_map[key]}"
         eval_value = get_eval_output(not https[key], no_color)
         if no_color:
-            output = f"{output:<{terminal_width - COLUMN_WIDTH_R}}{eval_value:^{COLUMN_WIDTH_R}}"
+            output = f"{output:<{terminal_width - COLUMN_WIDTH_R}}{eval_value:^{COLUMN_WIDTH_R}}\n"
         else:
             # This is a dirty hack required to align ANSI-colored str correctly
-            output = f"{output:<{terminal_width - COLUMN_WIDTH_R}}{eval_value:^{COLUMN_WIDTH_R + 9}}"
+            output = f"{output:<{terminal_width - COLUMN_WIDTH_R}}{eval_value:^{COLUMN_WIDTH_R + 9}}\n"
 
         output_str += output
 
-    output_str += '\n'
     return output_str

@@ -14,7 +14,7 @@ def main():
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('url', metavar='URL', nargs='?', default=None, type=str, help='Target URL')
     parser.add_argument('--target-list', dest='target_list', metavar='FILE', default=None, type=str,
-                        help='Input from list of target URLs')
+                        help='Read multiple target URLs from a file and scan them all')
     parser.add_argument('--max-redirects', dest='max_redirects', metavar='N', default=2, type=int,
                         help='Max redirects, set 0 to disable')
     parser.add_argument('--insecure', dest='insecure', action='store_true',
