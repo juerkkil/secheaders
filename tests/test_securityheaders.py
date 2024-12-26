@@ -2,6 +2,7 @@ from unittest import mock, TestCase
 from urllib.parse import ParseResult
 
 from secheaders.securityheaders import SecurityHeaders
+from tests.constants import EXAMPLE_HEADERS
 
 from .mock_classes import MockHTTPSConnection
 
@@ -25,17 +26,6 @@ class TestSecurityHeaders(TestCase):
 
     def test_eval_headers(self) -> None:
         secheaders = SecurityHeaders("https://www.example.com", 0)
-        expected_value = {
-            'x-frame-options': {'defined': False, 'warn': True, 'contents': None, 'notes': []},
-            'strict-transport-security': {'defined': False, 'warn': True, 'contents': None, 'notes': []},
-            'content-security-policy': {'defined': False, 'warn': True, 'contents': None, 'notes': []},
-            'x-content-type-options': {'defined': False, 'warn': True, 'contents': None, 'notes': []},
-            'x-xss-protection': {'defined': True, 'warn': True, 'contents': '1;', 'notes': []},
-            'referrer-policy': {'defined': False, 'warn': True, 'contents': None, 'notes': []},
-            'permissions-policy': {'defined': False, 'warn': True, 'contents': None, 'notes': []},
-            'server': {'defined': True, 'warn': False, 'contents': 'nginx', 'notes': []},
-        }
-
         secheaders.fetch_headers()
         res = secheaders.check_headers()
-        assert res == expected_value
+        assert res == EXAMPLE_HEADERS
