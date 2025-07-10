@@ -6,7 +6,7 @@ import sys
 
 from . import cmd_utils
 from .exceptions import SecurityHeadersException, FailedToFetchHeaders
-from .utils import analyze_headers
+from .eval_utils import analyze_headers
 from .webclient import WebClient
 
 
