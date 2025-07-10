@@ -1,7 +1,7 @@
+from unittest import TestCase
 import pytest
 
 from secheaders.exceptions import SecurityHeadersException
-from unittest import TestCase
 from secheaders import utils
 from secheaders.constants import EVAL_OK, EVAL_WARN
 
@@ -79,7 +79,7 @@ class TestUtils(TestCase):
         assert res == expected_value
 
     def test_eval_headers(self) -> None:
-        fetched_headers= {
+        fetched_headers = {
             'server': 'nginx',
             'x-xss-protection': '1;',
         }

@@ -138,7 +138,7 @@ def analyze_headers(headers: dict) -> dict:
     """ Default return array """
     retval = {}
 
-    SECURITY_HEADERS_DICT = {
+    security_headers = {
         'x-frame-options': {
             'recommended': True,
             'eval_func': eval_x_frame_options,
@@ -173,7 +173,7 @@ def analyze_headers(headers: dict) -> dict:
     if not headers:
         raise SecurityHeadersException("Headers not fetched successfully")
 
-    for header, settings in SECURITY_HEADERS_DICT.items():
+    for header, settings in security_headers.items():
         if header in headers:
             eval_func = settings.get('eval_func')
             if not eval_func:

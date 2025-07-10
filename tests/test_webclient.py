@@ -22,9 +22,3 @@ class TestWebClient(TestCase):
         }
         headers = webclient.get_headers()
         assert headers == expected_value
-
-#    def test_eval_headers(self) -> None:
-#        webclient = WebClient("https://www.example.com", 0)
-#        webclient.fetch_headers()
-#        res = webclient.check_headers()
-#        assert res == EXAMPLE_HEADERS
