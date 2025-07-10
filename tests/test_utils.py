@@ -1,6 +1,11 @@
+import pytest
+
+from secheaders.exceptions import SecurityHeadersException
 from unittest import TestCase
 from secheaders import utils
 from secheaders.constants import EVAL_OK, EVAL_WARN
+
+from tests.constants import EXAMPLE_HEADERS
 
 
 class TestUtils(TestCase):
@@ -72,3 +77,15 @@ class TestUtils(TestCase):
         expected_value = EVAL_OK, []
         res = utils.eval_permissions_policy(safe_pp)
         assert res == expected_value
+
+    def test_eval_headers(self) -> None:
+        fetched_headers= {
+            'server': 'nginx',
+            'x-xss-protection': '1;',
+        }
+        with pytest.raises(SecurityHeadersException, match=r"Headers not fetched successfully"):
+            utils.analyze_headers({})
+
+        res = utils.analyze_headers(fetched_headers)
+
+        assert res == EXAMPLE_HEADERS

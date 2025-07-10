@@ -6,7 +6,8 @@ import sys
 
 from . import cmd_utils
 from .exceptions import SecurityHeadersException, FailedToFetchHeaders
-from .securityheaders import SecurityHeaders
+from .utils import analyze_headers
+from .webclient import WebClient
 
 
 def main():
@@ -54,15 +55,14 @@ def async_scan_done(scan):
 
 
 def scan_target(url, args):
-    header_check = SecurityHeaders(url, args.max_redirects, args.insecure)
-    header_check.fetch_headers()
-    headers = header_check.check_headers()
-
+    web_client = WebClient(url, args.max_redirects, args.insecure)
+    headers = web_client.get_headers()
     if not headers:
         raise FailedToFetchHeaders("Failed to fetch headers")
+    analysis_result = analyze_headers(headers)
 
-    https = header_check.test_https()
-    return {'target': header_check.get_full_url(), 'headers': headers, 'https': https}
+    https = web_client.test_https()
+    return {'target': web_client.get_full_url(), 'headers': analysis_result, 'https': https}
 
 
 def scan_target_wrapper(url, args):
