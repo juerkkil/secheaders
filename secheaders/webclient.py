@@ -5,45 +5,11 @@ import ssl
 from typing import Union
 from urllib.parse import ParseResult, urlparse
 
-from . import utils
-from .constants import DEFAULT_TIMEOUT, DEFAULT_URL_SCHEME, EVAL_WARN, REQUEST_HEADERS, HEADER_STRUCTURED_LIST, \
-        SERVER_VERSION_HEADERS
-from .exceptions import SecurityHeadersException, InvalidTargetURL, UnableToConnect
+from .constants import DEFAULT_TIMEOUT, DEFAULT_URL_SCHEME, REQUEST_HEADERS, HEADER_STRUCTURED_LIST
+from .exceptions import InvalidTargetURL, UnableToConnect
 
 
-class SecurityHeaders():
-    SECURITY_HEADERS_DICT = {
-        'x-frame-options': {
-            'recommended': True,
-            'eval_func': utils.eval_x_frame_options,
-        },
-        'strict-transport-security': {
-            'recommended': True,
-            'eval_func': utils.eval_sts,
-        },
-        'content-security-policy': {
-            'recommended': True,
-            'eval_func': utils.eval_csp,
-        },
-        'x-content-type-options': {
-            'recommended': True,
-            'eval_func': utils.eval_content_type_options,
-        },
-        'x-xss-protection': {
-            # X-XSS-Protection is deprecated; not supported anymore, and may be even dangerous in older browsers
-            'recommended': False,
-            'eval_func': utils.eval_x_xss_protection,
-        },
-        'referrer-policy': {
-            'recommended': True,
-            'eval_func': utils.eval_referrer_policy,
-        },
-        'permissions-policy': {
-            'recommended': True,
-            'eval_func': utils.eval_permissions_policy,
-        }
-    }
-
+class WebClient():
     def __init__(self, url, max_redirects=2, insecure=False):
         parsed = urlparse(url)
         if not parsed.scheme and not parsed.netloc:
@@ -58,7 +24,6 @@ class SecurityHeaders():
         self.verify_ssl = not insecure
         self.target_url: ParseResult = self._follow_redirect_until_response(url, max_redirects) if max_redirects > 0 \
             else parsed
-        self.headers = {}
 
     def test_https(self) -> dict:
         redirect_supported = self._test_http_to_https()
@@ -133,8 +98,9 @@ class SecurityHeaders():
 
         return conn
 
-    def fetch_headers(self) -> None:
-        """ Fetch headers from the target site and store them into the class instance """
+    def get_headers(self) -> dict:
+        """ Fetch headers from the target site """
+        retval = {}
 
         conn = self.open_connection(self.target_url)
         try:
@@ -146,44 +112,11 @@ class SecurityHeaders():
         headers = res.getheaders()
         for h in headers:
             key = h[0].lower()
-            if key in HEADER_STRUCTURED_LIST and key in self.headers:
-                # Scenario described in RFC 2616 section 4.2
-                self.headers[key] += f', {h[1]}'
+            if key in HEADER_STRUCTURED_LIST and key in retval:
+                # Handle cenario described in RFC 2616 section 4.2
+                retval[key] += f', {h[1]}'
             else:
-                self.headers[key] = h[1]
-
-    def check_headers(self) -> dict:
-        """ Default return array """
-        retval = {}
-
-        if not self.headers:
-            raise SecurityHeadersException("Headers not fetched successfully")
-
-        for header, settings in self.SECURITY_HEADERS_DICT.items():
-            if header in self.headers:
-                eval_func = settings.get('eval_func')
-                if not eval_func:
-                    raise SecurityHeadersException(f"No evaluation function found for header: {header}")
-                res, notes = eval_func(self.headers[header])
-                retval[header] = {
-                    'defined': True,
-                    'warn': res == EVAL_WARN,
-                    'contents': self.headers[header],
-                    'notes': notes,
-                }
-            else:
-                warn = settings.get('recommended')
-                retval[header] = {'defined': False, 'warn': warn, 'contents': None, 'notes': []}
-
-        for header in SERVER_VERSION_HEADERS:
-            if header in self.headers:
-                res, notes = utils.eval_version_info(self.headers[header])
-                retval[header] = {
-                    'defined': True,
-                    'warn': res == EVAL_WARN,
-                    'contents': self.headers[header],
-                    'notes': notes,
-                }
+                retval[key] = h[1]
 
         return retval
 

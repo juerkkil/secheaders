@@ -1,7 +1,8 @@
 import re
 from typing import Tuple
 
-from .constants import EVAL_WARN, EVAL_OK, UNSAFE_CSP_RULES, RESTRICTED_PERM_POLICY_FEATURES
+from .constants import EVAL_WARN, EVAL_OK, UNSAFE_CSP_RULES, RESTRICTED_PERM_POLICY_FEATURES, SERVER_VERSION_HEADERS
+from .exceptions import SecurityHeadersException
 
 
 def eval_x_frame_options(contents: str) -> Tuple[int, list]:
@@ -129,5 +130,73 @@ def permissions_policy_parser(contents: str) -> dict:
             feature = match.groups()[0]
             feature_policy = match.groups()[2] if match.groups()[2] is not None else match.groups()[1]
             retval[feature] = feature_policy.split()
+
+    return retval
+
+
+def analyze_headers(headers: dict) -> dict:
+    """ Default return array """
+    retval = {}
+
+    security_headers = {
+        'x-frame-options': {
+            'recommended': True,
+            'eval_func': eval_x_frame_options,
+        },
+        'strict-transport-security': {
+            'recommended': True,
+            'eval_func': eval_sts,
+        },
+        'content-security-policy': {
+            'recommended': True,
+            'eval_func': eval_csp,
+        },
+        'x-content-type-options': {
+            'recommended': True,
+            'eval_func': eval_content_type_options,
+        },
+        'x-xss-protection': {
+            # X-XSS-Protection is deprecated; not supported anymore, and may be even dangerous in older browsers
+            'recommended': False,
+            'eval_func': eval_x_xss_protection,
+        },
+        'referrer-policy': {
+            'recommended': True,
+            'eval_func': eval_referrer_policy,
+        },
+        'permissions-policy': {
+            'recommended': True,
+            'eval_func': eval_permissions_policy,
+        }
+    }
+
+    if not headers:
+        raise SecurityHeadersException("Headers not fetched successfully")
+
+    for header, settings in security_headers.items():
+        if header in headers:
+            eval_func = settings.get('eval_func')
+            if not eval_func:
+                raise SecurityHeadersException(f"No evaluation function found for header: {header}")
+            res, notes = eval_func(headers[header])
+            retval[header] = {
+                'defined': True,
+                'warn': res == EVAL_WARN,
+                'contents': headers[header],
+                'notes': notes,
+            }
+        else:
+            warn = settings.get('recommended')
+            retval[header] = {'defined': False, 'warn': warn, 'contents': None, 'notes': []}
+
+    for header in SERVER_VERSION_HEADERS:
+        if header in headers:
+            res, notes = eval_version_info(headers[header])
+            retval[header] = {
+                'defined': True,
+                'warn': res == EVAL_WARN,
+                'contents': headers[header],
+                'notes': notes,
+            }
 
     return retval
