@@ -70,7 +70,7 @@ def eval_csp(contents: str) -> Tuple[int, list]:
 
 def eval_version_info(contents: str) -> Tuple[int, list]:
     # Poor guess whether the header value contain something that could be a server banner including version number
-    if len(contents) > 3 and re.match(".*[^0-9]+.*\\d.*", contents):
+    if len(contents) > 1 and re.match(".*[^0-9]+.*\\d.*", contents):
         return EVAL_WARN, []
 
     return EVAL_OK, []
