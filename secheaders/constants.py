@@ -33,11 +33,18 @@ UNSAFE_CSP_RULES = {
 # We apply here a logic, that access to privacy-sensitive features and payments API should be restricted.
 RESTRICTED_PERM_POLICY_FEATURES = ['camera', 'geolocation', 'microphone', 'payment']
 
-# Headers that we try to sniff for version information
+# Some semi-common / known headers that may expose version information
 SERVER_VERSION_HEADERS = [
     'x-powered-by',
+    'powered-by',
     'server',
     'x-aspnet-version',
+    'x-aspnetmvc-version',
+    'x-owa-version',
+    'x-version',
+    'x-varsnish-server',
+    'x-liferay-portal',
+    'x-powered-cms'
 ]
 
 HEADER_STRUCTURED_LIST = [  # Response headers that define multiple values as comma-sparated list
