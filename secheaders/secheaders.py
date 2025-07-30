@@ -20,29 +20,32 @@ def main():
                         help='Max redirects, set 0 to disable')
     parser.add_argument('--insecure', dest='insecure', action='store_true',
                         help='Do not verify TLS certificate chain')
+    parser.add_argument('--file', '-f', dest='file', metavar='FILE', default=None, type=str,
+                        help='Read the headers from file or stdin rather than fetching from URL')
     parser.add_argument('--json', dest='json', action='store_true', help='JSON output instead of text')
     parser.add_argument('--no-color', dest='no_color', action='store_true', help='Do not output colors in terminal')
     parser.add_argument('--verbose', '-v', dest='verbose', action='store_true',
                         help='Verbose output')
     args = parser.parse_args()
 
-    if not args.url and not args.target_list:
-        print("No target url provided.", file=sys.stderr)
+    if not (args.url or args.target_list or args.file):
+        print("No target url nor file input provided.", file=sys.stderr)
         parser.print_usage(sys.stderr)
         sys.exit(1)
 
-    if args.url:
+    if args.target_list:
+        asyncio.run(scan_multiple_targets(args))
+    else:
         try:
             res = scan_target(args.url, args)
         except SecurityHeadersException as e:
             print(e, file=sys.stderr)
             sys.exit(1)
+
         if args.json:
             print(json.dumps(res))
         else:
             print(cmd_utils.output_text(res['target'], res['headers'], res['https'], args.no_color, args.verbose))
-    elif args.target_list:
-        asyncio.run(scan_multiple_targets(args))
 
 
 def async_scan_done(scan):
@@ -55,14 +58,43 @@ def async_scan_done(scan):
 
 
 def scan_target(url, args):
-    web_client = WebClient(url, args.max_redirects, args.insecure)
-    headers = web_client.get_headers()
-    if not headers:
-        raise FailedToFetchHeaders("Failed to fetch headers")
-    analysis_result = analyze_headers(headers)
+    https = None
+    target = None
+    if url:
+        web_client = WebClient(url, args.max_redirects, args.insecure)
+        headers = web_client.get_headers()
+        https = web_client.test_https()
+        target = web_client.get_full_url()
+        if not headers:
+            raise FailedToFetchHeaders("Failed to fetch headers")
+    elif args.file:
+        headers = parse_file_input(args.file)
+        target = args.file
+    else:
+        raise SecurityHeadersException("Failed to fetch headers, no sufficient input provided.")
 
-    https = web_client.test_https()
-    return {'target': web_client.get_full_url(), 'headers': analysis_result, 'https': https}
+    analysis_result = analyze_headers(headers)
+    return {'target': target, 'headers': analysis_result, 'https': https}
+
+
+def parse_file_input(input_file):
+    headers = {}
+    try:
+        # pylint: disable=consider-using-with
+        fh = sys.stdin if input_file == '-' else open(input_file, 'r', encoding='utf-8')
+    except FileNotFoundError as e:
+        print(e, file=sys.stderr)
+        sys.exit(1)
+
+    for line in fh:
+        try:
+            header, contents = line.strip().split(':', 1)
+            headers[header] = contents.strip()
+        except ValueError:
+            pass  # invalid input line, ignore
+
+    fh.close()
+    return headers
 
 
 def scan_target_wrapper(url, args):
