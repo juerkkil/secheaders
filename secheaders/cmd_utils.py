@@ -55,15 +55,16 @@ def output_text(target_url, headers, https, no_color=False, verbose=False) -> st
         'certvalid': 'HTTPS valid certificate',
         'redirect': 'HTTP -> HTTPS automatic redirect',
     }
-    for key in https:
-        output = f"{msg_map[key]}"
-        eval_value = get_eval_output(not https[key], no_color)
-        if no_color:
-            output = f"{output:<{terminal_width - COLUMN_WIDTH_R}}{eval_value:^{COLUMN_WIDTH_R}}\n"
-        else:
-            # This is a dirty hack required to align ANSI-colored str correctly
-            output = f"{output:<{terminal_width - COLUMN_WIDTH_R}}{eval_value:^{COLUMN_WIDTH_R + 9}}\n"
+    if https:
+        for key in https:
+            output = f"{msg_map[key]}"
+            eval_value = get_eval_output(not https[key], no_color)
+            if no_color:
+                output = f"{output:<{terminal_width - COLUMN_WIDTH_R}}{eval_value:^{COLUMN_WIDTH_R}}\n"
+            else:
+                # This is a dirty hack required to align ANSI-colored str correctly
+                output = f"{output:<{terminal_width - COLUMN_WIDTH_R}}{eval_value:^{COLUMN_WIDTH_R + 9}}\n"
 
-        output_str += output
+            output_str += output
 
     return output_str
