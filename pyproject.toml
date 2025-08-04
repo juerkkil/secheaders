@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "secheaders"
-version = "0.1.1"
+version = "0.2.0"
 requires-python = ">=3.8"
 authors = [{ name = "Jussi-Pekka Erkkilä", email = "jp.erkkila@gmail.com" }]
 maintainers = [{ name = "Jussi-Pekka Erkkilä", email = "jp.erkkila@gmail.com" }]
