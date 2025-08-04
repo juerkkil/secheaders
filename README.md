@@ -22,7 +22,7 @@ $ pip install secheaders
 
 1. Clone into repository
 2. `python -m build`
-3. `pip install dist/secheaders-0.1.1-py3-none-any.whl`
+3. `pip install dist/secheaders-0.2.0-py3-none-any.whl`
 4. Run `secheaders --help`
 
 
@@ -34,21 +34,22 @@ $ pip install secheaders
 
 ## Usage
 ```
-usage: secheaders [-h] [--target-list FILE] [--max-redirects N] [--insecure] [--json] [--no-color] [--verbose] [URL]
+usage: secheaders [-h] [--target-list FILE] [--max-redirects N] [--insecure] [--file FILE] [--json] [--no-color] [--verbose] [URL]
 
 Scan HTTP security headers
 
 positional arguments:
-  URL                 Target URL (default: None)
+  URL                   Target URL (default: None)
 
 options:
-  -h, --help          show this help message and exit
-  --target-list FILE  Read multiple target URLs from a file and scan them all (default: None)
-  --max-redirects N   Max redirects, set 0 to disable (default: 2)
-  --insecure          Do not verify TLS certificate chain (default: False)
-  --json              JSON output instead of text (default: False)
-  --no-color          Do not output colors in terminal (default: False)
-  --verbose, -v       Verbose output (default: False)
+  -h, --help            show this help message and exit
+  --target-list FILE    Read multiple target URLs from a file and scan them all (default: None)
+  --max-redirects N     Max redirects, set 0 to disable (default: 2)
+  --insecure            Do not verify TLS certificate chain (default: False)
+  --file FILE, -f FILE  Read the headers from file or stdin rather than fetching from URL (default: None)
+  --json                JSON output instead of text (default: False)
+  --no-color            Do not output colors in terminal (default: False)
+  --verbose, -v         Verbose output (default: False)
 ```
 
 
