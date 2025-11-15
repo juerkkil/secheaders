@@ -3,6 +3,8 @@ import asyncio
 import json
 import sys
 
+from secheaders.constants import PREFLIGHT_HEADERS
+
 
 from . import cmd_utils
 from .exceptions import SecurityHeadersException, FailedToFetchHeaders
@@ -60,13 +62,16 @@ def async_scan_done(scan):
 def scan_target(url, args):
     https = None
     target = None
+    cors_headers = None
     if url:
         web_client = WebClient(url, args.max_redirects, args.insecure)
         headers = web_client.get_headers()
-        https = web_client.test_https()
-        target = web_client.get_full_url()
         if not headers:
             raise FailedToFetchHeaders("Failed to fetch headers")
+        https = web_client.test_https()
+        target = web_client.get_full_url()
+        cors_headers = web_client.get_headers(method='OPTIONS', headers=PREFLIGHT_HEADERS)
+        print(str(cors_headers), file=sys.stderr)
     elif args.file:
         headers = parse_file_input(args.file)
         target = args.file

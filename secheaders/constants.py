@@ -3,7 +3,7 @@ DEFAULT_URL_SCHEME = 'https'
 DEFAULT_TIMEOUT = 10
 
 # Let's try to imitate a legit browser to avoid being blocked / flagged as web crawler
-REQUEST_HEADERS = {
+DEFAULT_GET_HEADERS = {
     'Accept': ('text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,'
                'application/signed-exchange;v=b3;q=0.9'),
     'Accept-Encoding': 'gzip, deflate, br',
@@ -12,6 +12,14 @@ REQUEST_HEADERS = {
     'User-Agent': ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)'
                    'Chrome/106.0.0.0 Safari/537.36'),
 }
+
+PREFLIGHT_HEADERS = {
+    **DEFAULT_GET_HEADERS,
+    'Access-Control-Request-Method': 'GET',
+    'Origin': 'https://nonexistent.example.com',
+    'Cookie': 'SESSIONID=123',
+}
+
 
 EVAL_WARN = 0
 EVAL_OK = 1
