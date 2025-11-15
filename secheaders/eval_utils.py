@@ -24,7 +24,8 @@ def eval_x_xss_protection(contents: str) -> Tuple[int, list]:
     #
     # value '1' is dangerous because it can be used to block legit site features. If this header is defined, either
     # one of the below values if recommended
-    if contents.lower() in ['1; mode=block', '0']:
+    values = [v.strip() for v in contents.split(';')]
+    if '0' in values or ('1' in values and 'mode=block' in values):
         return EVAL_OK, []
 
     return EVAL_WARN, []
@@ -44,23 +45,25 @@ def eval_csp(contents: str) -> Tuple[int, list]:
     csp_parsed = csp_parser(contents)
 
     for rule, values in UNSAFE_CSP_RULES.items():
-        if rule not in csp_parsed:
-            if '-src' in rule and 'default-src' in csp_parsed:
-                # fallback to default-src
-                for unsafe_src in values:
-                    if unsafe_src in csp_parsed['default-src']:
-                        csp_unsafe = True
-                        csp_notes.append(
-                            f"Directive {rule} not defined, and default-src contains unsafe source {unsafe_src}"
-                        )
-            elif 'default-src' not in csp_parsed:
-                csp_notes.append(f"No directive {rule} nor default-src defined in the Content Security Policy")
-                csp_unsafe = True
-        else:
+        rule_defined = rule in csp_parsed
+        default_src_defined = 'default-src' in csp_parsed
+
+        if rule_defined:
             for unsafe_src in values:
                 if unsafe_src in csp_parsed[rule]:
                     csp_notes.append(f"Unsafe source {unsafe_src} in directive {rule}")
                     csp_unsafe = True
+        elif '-src' in rule and default_src_defined:
+            for unsafe_src in values:
+                if unsafe_src in csp_parsed['default-src']:
+                    csp_unsafe = True
+                    csp_notes.append(
+                        f"Directive {rule} not defined, and default-src contains unsafe source {unsafe_src}"
+                    )
+        else:
+            if not default_src_defined:
+                csp_notes.append(f"No directive {rule} nor default-src defined in the Content Security Policy")
+                csp_unsafe = True
 
     if csp_unsafe:
         return EVAL_WARN, csp_notes
