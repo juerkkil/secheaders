@@ -1,7 +1,8 @@
 import re
 from typing import Tuple
 
-from .constants import EVAL_WARN, EVAL_OK, UNSAFE_CSP_RULES, RESTRICTED_PERM_POLICY_FEATURES, SERVER_VERSION_HEADERS
+from .constants import EVAL_WARN, EVAL_OK, UNSAFE_CSP_RULES, RESTRICTED_PERM_POLICY_FEATURES, SERVER_VERSION_HEADERS, \
+    PREFLIGHT_HEADERS
 from .exceptions import SecurityHeadersException
 
 
@@ -137,7 +138,87 @@ def permissions_policy_parser(contents: str) -> dict:
     return retval
 
 
-def analyze_headers(headers: dict) -> dict:
+def eval_coep(contents: str) -> Tuple[int, list]:
+    # Accept only recommended values as safe
+    safe_values = ['require-corp', 'unsafe-none']
+    notes = []
+
+    value = contents.strip().lower()
+    if value in safe_values:
+        return EVAL_OK, []
+
+    notes.append(f"Unrecognized or unsafe COEP value: {contents}")
+    return EVAL_WARN, notes
+
+
+def eval_coop(contents: str) -> Tuple[int, list]:
+    # Accept only recommended values as safe
+    safe_values = ['same-origin', 'same-origin-allow-popups', 'unsafe-none']
+    notes = []
+
+    value = contents.strip().lower()
+    if value in safe_values:
+        return EVAL_OK, []
+
+    notes.append(f"Unrecognized or unsafe COOP value: {contents}")
+    return EVAL_WARN, notes
+
+
+def eval_cors(cors_headers: dict) -> Tuple[int, list]:
+    contents = cors_headers.get('access-control-allow-origin')
+    allow_credentials = cors_headers.get('access-control-allow-credentials', False)
+
+    if not contents:
+        return EVAL_OK, []
+
+    notes = []
+    # Check that the CORS value is not reflected from our preflight request (risky practice)
+    if contents in PREFLIGHT_HEADERS.values():
+        notes.append("CORS header value is reflected back from the Origin or other request headers.")
+        if allow_credentials and allow_credentials.lower() == 'true':
+            notes.append("Access-Control-Allow-Credentials is set to true, which is unsafe with reflected origins.")
+        return EVAL_WARN, notes
+
+    # Allow specific origins (not wildcard)
+    # Match a valid http or https URL using regex
+    if re.match(r'^https?://[^\s/$.?#].[^\s]*$', contents):
+        return EVAL_OK, []
+
+    if contents == '*':
+        notes.append("Wildcard '*' allows cross-site requests from any origin.")
+        if allow_credentials and allow_credentials.lower() == 'true':
+            notes.append("Access-Control-Allow-Credentials is set to true, which is unsafe with wildcard origins.")
+            return EVAL_WARN, notes
+        return EVAL_OK, notes
+
+    notes.append(f"Unrecognized or unsafe CORS value: {contents}")
+
+    return EVAL_WARN, notes
+
+
+def eval_corp(contents: str) -> Tuple[int, list]:
+    # Accept only recommended values as safe
+    safe_values = ['same-origin', 'same-site']
+    valid_values = safe_values + ['cross-origin']
+
+    notes = []
+
+    value = contents.strip().lower()
+    if value in valid_values:
+        # Only 'same-origin' and 'same-site' are considered safe
+        if value in safe_values:
+            return EVAL_OK, []
+
+        notes.append(
+            f"Value '{contents}' is valid but less restrictive; consider using 'same-origin' or 'same-site'."
+        )
+        return EVAL_WARN, notes
+
+    notes.append(f"Unrecognized value: {contents}")
+    return EVAL_WARN, notes
+
+
+def analyze_headers(headers: dict, cors_headers: dict = None) -> dict:
     """ Default return array """
     retval = {}
 
@@ -170,6 +251,20 @@ def analyze_headers(headers: dict) -> dict:
         'permissions-policy': {
             'recommended': True,
             'eval_func': eval_permissions_policy,
+        },
+    }
+    cors_headers_mapping = {
+        'cross-origin-embedder-policy': {
+            'recommended': True,
+            'eval_func': eval_coep,
+        },
+        'cross-origin-opener-policy': {
+            'recommended': True,
+            'eval_func': eval_coop,
+        },
+        'cross-origin-resource-policy': {
+            'recommended': True,
+            'eval_func': eval_corp
         }
     }
 
@@ -191,6 +286,33 @@ def analyze_headers(headers: dict) -> dict:
         else:
             warn = settings.get('recommended')
             retval[header] = {'defined': False, 'warn': warn, 'contents': None, 'notes': []}
+
+    if cors_headers:
+        # cross-origin-allow-origin is a bit special as it depends on the presece of
+        # the header cross-origin-allow-credentials
+        res, notes = eval_cors(cors_headers)
+        retval['access-control-allow-origin'] = {
+            'defined': cors_headers.get('access-control-allow-origin') is not None,
+            'warn': res == EVAL_WARN,
+            'contents': cors_headers.get('access-control-allow-origin'),
+            'notes': notes,
+        }
+
+        for header, settings in cors_headers_mapping.items():
+            if header in cors_headers:
+                eval_func = settings.get('eval_func')
+                if not eval_func:
+                    raise SecurityHeadersException(f"No evaluation function found for header: {header}")
+                res, notes = eval_func(cors_headers[header])
+                retval[header] = {
+                    'defined': True,
+                    'warn': res == EVAL_WARN,
+                    'contents': cors_headers[header],
+                    'notes': notes,
+                }
+            else:
+                warn = settings.get('recommended')
+                retval[header] = {'defined': False, 'warn': warn, 'contents': None, 'notes': []}
 
     for header in SERVER_VERSION_HEADERS:
         if header in headers:

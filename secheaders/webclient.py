@@ -5,7 +5,7 @@ import ssl
 from typing import Union
 from urllib.parse import ParseResult, urlparse
 
-from .constants import DEFAULT_TIMEOUT, DEFAULT_URL_SCHEME, REQUEST_HEADERS, HEADER_STRUCTURED_LIST
+from .constants import DEFAULT_TIMEOUT, DEFAULT_URL_SCHEME, HEADER_STRUCTURED_LIST, DEFAULT_GET_HEADERS
 from .exceptions import InvalidTargetURL, UnableToConnect
 
 
@@ -53,7 +53,7 @@ class WebClient():
                 raise InvalidTargetURL("Unsupported protocol scheme")
 
             try:
-                conn.request('GET', temp_url.path, headers=REQUEST_HEADERS)
+                conn.request('GET', temp_url.path, headers=DEFAULT_GET_HEADERS)
                 res = conn.getresponse()
             except (socket.gaierror, socket.timeout, ConnectionRefusedError, UnicodeError) as e:
                 raise UnableToConnect(f"Connection failed {temp_url.netloc}") from e
@@ -98,13 +98,15 @@ class WebClient():
 
         return conn
 
-    def get_headers(self) -> dict:
+    def get_headers(self, method='GET', headers=None) -> dict:
         """ Fetch headers from the target site """
         retval = {}
+        if not headers:
+            headers = DEFAULT_GET_HEADERS
 
         conn = self.open_connection(self.target_url)
         try:
-            conn.request('GET', self.target_url.path, headers=REQUEST_HEADERS)
+            conn.request(method=method, url=self.target_url.path, headers=headers)
             res = conn.getresponse()
         except (socket.gaierror, socket.timeout, ConnectionRefusedError, ssl.SSLError, UnicodeError) as e:
             raise UnableToConnect(f"Connection failed {self.target_url.hostname}") from e
