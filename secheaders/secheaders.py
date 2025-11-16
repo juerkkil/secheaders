@@ -71,14 +71,13 @@ def scan_target(url, args):
         https = web_client.test_https()
         target = web_client.get_full_url()
         cors_headers = web_client.get_headers(method='OPTIONS', headers=PREFLIGHT_HEADERS)
-        print(str(cors_headers), file=sys.stderr)
     elif args.file:
         headers = parse_file_input(args.file)
         target = args.file
     else:
         raise SecurityHeadersException("Failed to fetch headers, no sufficient input provided.")
 
-    analysis_result = analyze_headers(headers)
+    analysis_result = analyze_headers(headers, cors_headers)
     return {'target': target, 'headers': analysis_result, 'https': https}
 
 
